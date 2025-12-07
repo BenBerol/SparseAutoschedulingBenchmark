@@ -24,7 +24,6 @@ AI was used for debugging. This statement was written by hand.
 """
 
 import numpy as np
-from scipy.integrate import solve_ivp
 
 
 def forward_euler(
@@ -69,8 +68,10 @@ def rc(t, Vc, R, C, Vs_func):
 
 def dg_forward_euler_rc(R, C, t_max, V_C_initial, step):
     """Data Generator for Forward Euler with RC Circuit."""
+
     def dVdt(t, Vc):
         return rc(t, Vc, R, C, step_input)
+
     # dVdt = lambda t, Vc: rc_ode(t, Vc, R, C, step_input)
 
     return (np, dVdt, (0, t_max), [V_C_initial], step)
@@ -96,8 +97,10 @@ def rlc(
 
 def dg_forward_euler_rlc(R, L, C, t_max, y0, step):
     """Data Generator for Forward Euler with RLC Circuit."""
+
     def dVdt(t, y):
         return rlc(t, y, R, L, C, step_input)
+
     # dVdt = lambda t, y: rlc(t, y, R, L, C, step_input)
     return (np, dVdt, (0, t_max), y0, step)
 
@@ -111,8 +114,10 @@ def lotka_volterra(t, state, a, b, c, d):
 
 def dg_forward_euler_lotka_volterra(a, b, c, d, t_max, y0, step):
     """Data Generator for Forward Euler with Lotka-Volterra Equations."""
+
     def dydt(t, y):
         return lotka_volterra(t, y, a, b, c, d)
+
     # dydt = lambda t, y: lotka_volterra(t, y, a, b, c, d)
 
     # Solve
