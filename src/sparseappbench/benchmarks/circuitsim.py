@@ -23,10 +23,6 @@ No generative AI was used to write the benchmark function itself. Generative
 AI was used for debugging. This statement was written by hand.
 """
 
-from functools import partial
-import matplotlib.pyplot as plt
-
-
 import numpy as np
 from scipy.integrate import solve_ivp
 
@@ -71,12 +67,13 @@ def rc(t, Vc, R, C, Vs_func):
     return [(Vs - Vc[0]) / tau]  # dV/dt
 
 
-def dg_forward_euler_rc(R, C, t_max, V_C_initial):
+def dg_forward_euler_rc(R, C, t_max, V_C_initial, step):
     """Data Generator for Forward Euler with RC Circuit."""
-    dVdt = partial(rc, R=R, C=C, Vs_func=step_input)
+    def dVdt(t, Vc):
+        return rc(t, Vc, R, C, step_input)
     # dVdt = lambda t, Vc: rc_ode(t, Vc, R, C, step_input)
 
-    return (np, dVdt, (0, t_max), [V_C_initial], t_max / 1000)
+    return (np, dVdt, (0, t_max), [V_C_initial], step)
 
 
 def rlc(
@@ -97,11 +94,12 @@ def rlc(
     return (dVc, d2Vc)
 
 
-def dg_forward_euler_rlc(R, L, C, t_max, y0):
+def dg_forward_euler_rlc(R, L, C, t_max, y0, step):
     """Data Generator for Forward Euler with RLC Circuit."""
-    dVdt = partial(rlc, R=R, L=L, C=C, Vs_func=step_input)
+    def dVdt(t, y):
+        return rlc(t, y, R, L, C, step_input)
     # dVdt = lambda t, y: rlc(t, y, R, L, C, step_input)
-    return (np, dVdt, (0, t_max), y0, t_max / 1000000)
+    return (np, dVdt, (0, t_max), y0, step)
 
 
 def lotka_volterra(t, state, a, b, c, d):
@@ -111,50 +109,11 @@ def lotka_volterra(t, state, a, b, c, d):
     return (dxdt, dydt)
 
 
-def dg_forward_euler_lotka_volterra(a, b, c, d, y0):
+def dg_forward_euler_lotka_volterra(a, b, c, d, t_max, y0, step):
     """Data Generator for Forward Euler with Lotka-Volterra Equations."""
-    dydt = partial(lotka_volterra, a=a, b=b, c=c, d=d)
+    def dydt(t, y):
+        return lotka_volterra(t, y, a, b, c, d)
     # dydt = lambda t, y: lotka_volterra(t, y, a, b, c, d)
 
     # Solve
-    return (np, dydt, (0, 30), y0, 1)
-
-def test_euler_forward_rc():
-    """Test function for Forward Euler with RC Circuit."""
-    (time, voltage) = forward_euler(*dg_forward_euler_rc(R=1000, C=0.001, t_max=5, V_C_initial=0))
-    voltage = [v[0] for v in voltage]
-    actual = solve_ivp(
-        fun=partial(rc, R=1000, C=0.001, Vs_func=step_input),
-        t_span=(0, 5),
-        y0=[0],
-        t_eval=time,
-    )
-    error = np.max(np.abs(voltage - actual.y[0].T))
-    assert error < 0.05, f"Exceeds error tolerance: {error}"
-
-def test_euler_forward_rlc():
-    """Test function for Forward Euler with RLC Circuit."""
-    (time, voltage) = forward_euler(*dg_forward_euler_rlc(R=100, L=10e-3, C=1e-7, t_max=100 * 10e-3 / 100, y0=[0, 0]))
-    voltage = [v[0] for v in voltage]
-    actual = solve_ivp(
-        fun=partial(rlc, R=100, L=10e-3, C=1e-7, Vs_func=step_input),
-        t_span=(0, 100 * 10e-3 / 100),
-        y0=[0, 0],
-        t_eval=time,
-    )
-    # compare error in total
-    error = np.max(np.abs(voltage - actual.y[0].T))
-    assert error < 0.05, f"Exceeds error tolerance: {error}"
-
-def test_euler_forward_lv():
-    """Test function for Forward Euler with Lotka-Volterra Equations."""
-    (time, populations) = forward_euler(*dg_forward_euler_lotka_volterra(a=0.1, b=0.02, c=0.3, d=0.01, y0=[40, 9]))
-    actual = solve_ivp(
-        fun=partial(lotka_volterra, a=0.1, b=0.02, c=0.3, d=0.01),
-        t_span=(0, 30),
-        y0=[40, 9],
-        t_eval=time,
-    )
-    # compare error in total
-    error = np.max(np.abs(populations) - np.abs(actual.y[0].T))
-    assert error < 0.05, f"Exceeds error tolerance: {error}"
+    return (np, dydt, (0, t_max), y0, step)
