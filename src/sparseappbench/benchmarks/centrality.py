@@ -51,7 +51,7 @@ def betweenness_centrality(xp, A_binsparse):
             depth += 1
             layer_traversal.append(neighbors)
 
-            number_of_paths, neighbors = xp.lazy(number_of_paths, neighbors)
+            number_of_paths, neighbors = xp.lazy((number_of_paths, neighbors))
 
             number_of_paths = number_of_paths + neighbors
 
@@ -59,7 +59,7 @@ def betweenness_centrality(xp, A_binsparse):
             next_neighbors = xp.matmul(neighbors, G) * not_neighbors
 
             number_of_paths, next_neighbors, node_count = xp.compute(
-                number_of_paths, next_neighbors, xp.sum(next_neighbors)
+                (number_of_paths, next_neighbors, xp.sum(next_neighbors))
             )
 
             neighbors = next_neighbors
@@ -70,13 +70,13 @@ def betweenness_centrality(xp, A_binsparse):
             neighbors = layer_traversal[depth - 1]
 
             score_update, neighbors, number_of_paths = xp.lazy(
-                score_update, neighbors, number_of_paths
+                (score_update, neighbors, number_of_paths)
             )
 
             update_val = neighbors * ((1 + score_update) / number_of_paths)
             update_val = update_val + xp.matmul(G, update_val)
 
-            score_update, update_val = xp.compute(score_update, update_val)
+            score_update, update_val = xp.compute((score_update, update_val))
 
             score_update = score_update + update_val
 
