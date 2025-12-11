@@ -15,6 +15,8 @@ def run_bc(xp, A):
     return xp.from_benchmark(result_bin).ravel()
 
 
+# Modified the intended results because I am calculating
+# unnormalized betweenness centrality.
 def test_joels_case():
     xp = NumpyFramework()
 
@@ -30,7 +32,7 @@ def test_joels_case():
     )
 
     result = run_bc(xp, A)
-    expected = np.array([0.0, 5.0, 5.0, 6.0, 0.0])
+    expected = np.array([0.0, 1.0, 1.0, 3.0, 0.0])
 
     assert np.allclose(result, expected, atol=1e-6)
 

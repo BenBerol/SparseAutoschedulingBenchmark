@@ -33,55 +33,64 @@ the benchmark function. This statement is written by hand.
 def betweenness_centrality(xp, A_binsparse):
     G = xp.lazy(xp.from_benchmark(A_binsparse))
     n = G.shape[0]
-    bc_scores = xp.zeros((n,), dtype=float)
+    bc_scores = xp.zeros(n, dtype=float)
 
-    for v in range(n):
-        number_of_paths = xp.zeros((n,), dtype=float)
-        self_dist = xp.zeros((n,), dtype=float)
-        self_dist = self_dist + xp.array([1.0 if i == v else 0.0 for i in range(n)])
-        number_of_paths = number_of_paths + self_dist
+    for s in range(n):
+        stack = xp.zeros((0,), dtype=int)
+        prev = xp.zeros((n, n), dtype=float)
 
-        neighbors = xp.array(G[v], dtype=float)
-        layer_traversal = []
-        depth = 0
+        number_of_paths = xp.zeros(n, dtype=float)
+        number_of_paths = number_of_paths + (xp.arange(n) == s).astype(float)
 
-        node_count = xp.compute(xp.sum(neighbors))
+        dist = -xp.ones(n, dtype=int)
+        dist = dist + (xp.arange(n) == s).astype(int)
 
-        while node_count != 0:
-            depth += 1
-            layer_traversal.append(neighbors)
+        queue = xp.array([s], dtype=int)
 
-            number_of_paths, neighbors = xp.lazy((number_of_paths, neighbors))
+        while len(queue) > 0:
+            curr_q = int(queue[0])
+            queue = queue[1:]
+            stack = xp.concatenate([stack, xp.array([curr_q], dtype=int)])
+            row = xp.compute(G[curr_q])
+            neighbors = row != 0
 
-            number_of_paths = number_of_paths + neighbors
+            if xp.any(neighbors):
+                not_visited = neighbors & (dist == -1)
+                if xp.any(not_visited):
+                    dist_val = int(dist[curr_q])
+                    dist = xp.where(not_visited, dist_val + 1, dist)
 
-            not_neighbors = xp.equal(number_of_paths, 0)
-            next_neighbors = xp.matmul(neighbors, G) * not_neighbors
+                    queue_index = xp.nonzero(not_visited)[0]
+                    queue = xp.concatenate([queue, queue_index.astype(int)])
 
-            number_of_paths, next_neighbors, node_count = xp.compute(
-                (number_of_paths, next_neighbors, xp.sum(next_neighbors))
-            )
+                target_val = neighbors & (dist == (int(dist[curr_q]) + 1))
 
-            neighbors = next_neighbors
+                if xp.any(target_val):
+                    update_val = float(number_of_paths[curr_q])
+                    number_of_paths = (
+                        number_of_paths + target_val.astype(float) * update_val
+                    )
 
-        score_update = xp.zeros((n,), dtype=float)
+                    col_update = (xp.arange(n) == curr_q).astype(float)
+                    prev = prev + xp.outer(target_val.astype(float), col_update)
 
-        while depth > 1:
-            neighbors = layer_traversal[depth - 1]
+        total = xp.zeros(n, dtype=float)
 
-            score_update, neighbors, number_of_paths = xp.lazy(
-                (score_update, neighbors, number_of_paths)
-            )
+        while len(stack) > 0:
+            curr_s = int(stack[-1])
+            stack = stack[:-1]
+            node_val = xp.maximum(number_of_paths[curr_s], 1e-10)
 
-            update_val = neighbors * ((1 + score_update) / number_of_paths)
-            update_val = update_val + xp.matmul(G, update_val)
+            previous = prev[curr_s, :] != 0
 
-            score_update, update_val = xp.compute((score_update, update_val))
+            if xp.any(previous):
+                scale_factor = (1.0 + total[curr_s]) / node_val
+                path_counter = previous.astype(float) * (number_of_paths * scale_factor)
+                total = total + path_counter
 
-            score_update = score_update + update_val
-
-            depth -= 1
-
-        bc_scores = bc_scores + score_update
+            if curr_s != s:
+                bc_scores = (
+                    bc_scores + (xp.arange(n) == curr_s).astype(float) * total[curr_s]
+                )
 
     return xp.to_benchmark(bc_scores)
