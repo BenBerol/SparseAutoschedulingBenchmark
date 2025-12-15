@@ -1,6 +1,4 @@
-import os
-import numpy as np
-from ..binsparse_format import BinsparseFormat
+from ..frameworks.einsum import einsum
 """
 Name: Triangle, 4-Clique Counting
 Author: Jeffrey Xu
@@ -44,12 +42,12 @@ AI was used to debug code. This statement was written by hand.
 
 
 def benchmark_triangle_count(xp, A_bench):
-    A_lazy=xp.lazy(xp.from_benchmark(A_bench))
-    triangles = xp.einsum(xp,"S[] += A[i,j] * A[j,k] * A[k,i]", A=A_lazy) / 6
+    A=xp.lazy(xp.from_benchmark(A_bench))
+    triangles = einsum(xp,"S[] += A[i,j] * A[j,k] * A[k,i]", A=A) / 6
     return xp.to_benchmark(xp.compute(triangles))
 
 
 def benchmark_4clique_count(xp, A_bench):
-    A_lazy = xp.lazy(xp.from_benchmark(A_bench))
-    cliques_4 = xp.einsum(xp,"S[] += A[i,j] * A[i,k] * A[i,l] * A[j,k] * A[j,l] * A[k,l]",A=A_bench) / 24
+    A = xp.lazy(xp.from_benchmark(A_bench))
+    cliques_4 = einsum(xp,"S[] += A[i,j] * A[i,k] * A[i,l] * A[j,k] * A[j,l] * A[k,l]",A=A) / 24
     return xp.to_benchmark(xp.compute(cliques_4))
