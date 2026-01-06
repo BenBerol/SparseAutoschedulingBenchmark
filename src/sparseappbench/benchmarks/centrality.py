@@ -33,64 +33,61 @@ the benchmark function. This statement is written by hand.
 def betweenness_centrality(xp, A_binsparse):
     G = xp.lazy(xp.from_benchmark(A_binsparse))
     n = G.shape[0]
-    bc_scores = xp.zeros(n, dtype=float)
+    bc_scores = xp.zeros((n,), dtype=float)
 
-    for s in range(n):
-        stack = xp.zeros((0,), dtype=int)
-        prev = xp.zeros((n, n), dtype=float)
+    for v in range(n):
+        number_of_paths = xp.zeros((n,), dtype=float)
+        self_dist = xp.zeros((n,), dtype=float)
+        self_dist = self_dist + xp.array([1.0 if i == v else 0.0 for i in range(n)])
+        number_of_paths = number_of_paths + self_dist
 
-        number_of_paths = xp.zeros(n, dtype=float)
-        number_of_paths = number_of_paths + (xp.arange(n) == s).astype(float)
+        neighbors = xp.array(G[v], dtype=float)
+        layer_traversal = []
+        depth = 0
 
-        dist = -xp.ones(n, dtype=int)
-        dist = dist + (xp.arange(n) == s).astype(int)
+        node_count = xp.compute(xp.sum(neighbors))
 
-        queue = xp.array([s], dtype=int)
+        while node_count != 0:
+            depth += 1
 
-        while len(queue) > 0:
-            curr_q = int(queue[0])
-            queue = queue[1:]
-            stack = xp.concatenate([stack, xp.array([curr_q], dtype=int)])
-            row = xp.compute(G[curr_q])
-            neighbors = row != 0
+            layer_traversal.append(neighbors != 0)
 
-            if xp.any(neighbors):
-                not_visited = neighbors & (dist == -1)
-                if xp.any(not_visited):
-                    dist_val = int(dist[curr_q])
-                    dist = xp.where(not_visited, dist_val + 1, dist)
+            number_of_paths, neighbors = xp.lazy((number_of_paths, neighbors))
 
-                    queue_index = xp.nonzero(not_visited)[0]
-                    queue = xp.concatenate([queue, queue_index.astype(int)])
+            number_of_paths = number_of_paths + neighbors
 
-                target_val = neighbors & (dist == (int(dist[curr_q]) + 1))
+            not_neighbors = xp.equal(number_of_paths, 0)
+            next_neighbors = xp.matmul(neighbors, G) * not_neighbors
 
-                if xp.any(target_val):
-                    update_val = float(number_of_paths[curr_q])
-                    number_of_paths = (
-                        number_of_paths + target_val.astype(float) * update_val
-                    )
+            number_of_paths, next_neighbors, node_count = xp.compute(
+                (number_of_paths, next_neighbors, xp.sum(next_neighbors))
+            )
 
-                    col_update = (xp.arange(n) == curr_q).astype(float)
-                    prev = prev + xp.outer(target_val.astype(float), col_update)
+            neighbors = next_neighbors
 
-        total = xp.zeros(n, dtype=float)
+        score_update = xp.zeros((n,), dtype=float)
 
-        while len(stack) > 0:
-            curr_s = int(stack[-1])
-            stack = stack[:-1]
-            node_val = xp.maximum(number_of_paths[curr_s], 1e-10)
+        while depth >= 2:
+            neighbors_layer = layer_traversal[depth - 1].astype(float)
 
-            previous = prev[curr_s, :] != 0
+            prev_layer = layer_traversal[depth - 2].astype(float)
 
-            if xp.any(previous):
-                scale_factor = (1.0 + total[curr_s]) / node_val
-                path_counter = previous.astype(float) * (number_of_paths * scale_factor)
-                total = total + path_counter
+            score_update, neighbors_layer, prev_layer, number_of_paths = xp.lazy(
+                (score_update, neighbors_layer, prev_layer, number_of_paths)
+            )
 
-            if curr_s != s:
-                bc_scores = (
-                    bc_scores + (xp.arange(n) == curr_s).astype(float) * total[curr_s]
-                )
+            denom = xp.maximum(number_of_paths, 1e-10)
+            update_val = neighbors_layer * (1.0 + score_update) / denom
+
+            update_val = xp.matmul(G, update_val)
+
+            update_val = update_val * prev_layer * number_of_paths
+
+            score_update, update_val = xp.compute((score_update, update_val))
+            score_update = score_update + update_val
+
+            depth -= 1
+
+        bc_scores = bc_scores + score_update
 
     return xp.to_benchmark(bc_scores)
