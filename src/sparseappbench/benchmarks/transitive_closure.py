@@ -6,16 +6,16 @@ Motivation (Importance of problem with citation):
 “Connected component labeling is a key step in a wide-range of applications,
 such as community detection in social networks and coherent region
 tracking in image analysis.”
-J. Iverson, C. Kamath, and G. Karypis, 
+J. Iverson, C. Kamath, and G. Karypis,
 “Evaluation of connected-component labeling algorithms
- for distributed-memory systems,” Parallel Computing, vol. 44, 
+ for distributed-memory systems,” Parallel Computing, vol. 44,
  pp. 53–68, May 2015, doi: 10.1016/j.parco.2015.02.005.
 
 “Reachability queries, which ask whether there exists
  a path between two vertices in a directed graph,
 are fundamental operations in graph databases and are widely used in applications
 such as XML querying, program analysis, social networks, and biological networks.
-Computing the transitive closure is a classical approach to answering 
+Computing the transitive closure is a classical approach to answering
 reachability queries.”
 
 Y. Chen, W. Wang, Z. Liu, and X. Lin,
@@ -25,8 +25,8 @@ doi: 10.1145/1862919.1862920.
 
 Role of sparsity (How sparsity is used in the problem):
 The input graphs are sparse, meaning the number of edges < number of vertex pairs.
- When represented as matrices, optimized algorithms can focus on nonzero entries. 
-This allows SCC to operate near linear time scaling with the number of edges, 
+ When represented as matrices, optimized algorithms can focus on nonzero entries.
+This allows SCC to operate near linear time scaling with the number of edges,
 and limits the work done during the transitive closure algorithm.
 
 Implementation (Where did the reference algorithm come from? With citation.):
@@ -35,7 +35,7 @@ Came from Github issue.
 
 Author: Joel Mathew Cherian
 Email: jcherian32@gatech.edu
-Reference: Kepner, Jeremy, and John Gilbert, eds. Graph algorithms in the language of 
+Reference: Kepner, Jeremy, and John Gilbert, eds. Graph algorithms in the language of
 linear algebra
 
 Generative AI: No generative AI was used to construct the benchmark function
