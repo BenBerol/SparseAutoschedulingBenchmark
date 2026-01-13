@@ -45,6 +45,7 @@ def betweenness_centrality(xp, A_binsparse):
         layer_traversal = []
         depth = 0
 
+        neighbors = xp.lazy(neighbors)
         node_count = xp.compute(xp.sum(neighbors))
 
         while node_count != 0:
