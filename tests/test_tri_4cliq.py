@@ -2,9 +2,13 @@ import pytest
 
 import numpy as np
 
-from sparseappbench.benchmarks.tri_4cliq import benchmark_triangle_count, benchmark_4clique_count
+from sparseappbench.benchmarks.tri_4cliq import (
+    benchmark_4clique_count,
+    benchmark_triangle_count,
+)
 from sparseappbench.binsparse_format import BinsparseFormat
 from sparseappbench.frameworks.numpy_framework import NumpyFramework
+
 
 @pytest.mark.parametrize(
     "A, expected",
@@ -34,7 +38,7 @@ from sparseappbench.frameworks.numpy_framework import NumpyFramework
             ),
             0,
         ),
-        #4 clique - contains 4c3 = 4 triangles
+        # 4 clique - contains 4c3 = 4 triangles
         (
             np.array(
                 [
@@ -46,7 +50,7 @@ from sparseappbench.frameworks.numpy_framework import NumpyFramework
                 dtype=int,
             ),
             4,
-        )
+        ),
     ],
 )
 def test_triangle_count(A, expected):
@@ -57,6 +61,7 @@ def test_triangle_count(A, expected):
     result = xp.from_benchmark(bench_result).item()
 
     assert np.allclose(result, expected)
+
 
 @pytest.mark.parametrize(
     "A, expected",
@@ -86,7 +91,7 @@ def test_triangle_count(A, expected):
             ),
             1,
         ),
-        # Two overlapping 4-cliques sharing an edge, since only 2 4-cliques should return 2
+        # Two overlapping 4-cliques sharing an edge, only 2 4-cliques should return 2.
         # Nodes {0,1,2,3} and {1,2,3,4}
         (
             np.array(
